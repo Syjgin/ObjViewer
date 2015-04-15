@@ -1,0 +1,9 @@
+E:\projects\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp.dll
+E:\projects\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp.pdb
+E:\projects\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.xml
+E:\projects\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.xml
+E:\projects\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.UI.xml
+E:\projects\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Xcode.xml
+E:\projects\ObjViewer\obj\Debug\UnityVS.ObjViewer.CSharp.csprojResolveAssemblyReference.cache
+E:\projects\ObjViewer\obj\Debug\Assembly-CSharp.dll
+E:\projects\ObjViewer\obj\Debug\Assembly-CSharp.pdb
