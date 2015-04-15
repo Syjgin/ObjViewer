@@ -7,3 +7,17 @@ E:\projects\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Xcode.xm
 E:\projects\ObjViewer\obj\Debug\UnityVS.ObjViewer.CSharp.csprojResolveAssemblyReference.cache
 E:\projects\ObjViewer\obj\Debug\Assembly-CSharp.dll
 E:\projects\ObjViewer\obj\Debug\Assembly-CSharp.pdb
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp.dll
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp.pdb
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.dll
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Xcode.dll
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.dll
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.UI.dll
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp-firstpass.pdb
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.xml
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.xml
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.UI.xml
+E:\projects\ObjViewer\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Xcode.xml
+E:\projects\ObjViewer\ObjViewer\obj\Debug\UnityVS.ObjViewer.CSharp.csprojResolveAssemblyReference.cache
+E:\projects\ObjViewer\ObjViewer\obj\Debug\Assembly-CSharp.dll
+E:\projects\ObjViewer\ObjViewer\obj\Debug\Assembly-CSharp.pdb
