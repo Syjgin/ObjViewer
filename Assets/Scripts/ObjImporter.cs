@@ -46,7 +46,7 @@ public class ObjImporter
             if (v.y >= 1)
                 newUVs[i] = newMesh.uv[(int)v.y - 1];
 
-            if (v.z >= 1)
+            if (v.z >= 1 && newMesh.normals.Length > 0)
                 newNormals[i] = newMesh.normals[(int)v.z - 1];
             i++;
         }
@@ -59,7 +59,7 @@ public class ObjImporter
         mesh.triangles = newMesh.triangles;
 
         mesh.RecalculateBounds();
-        mesh.Optimize();
+        //mesh.Optimize();
 
         return mesh;
     }

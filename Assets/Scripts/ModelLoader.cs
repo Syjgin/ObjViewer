@@ -4,12 +4,29 @@ public class ModelLoader : MonoBehaviour {
 
     [SerializeField] private Material _diffuse;
     [SerializeField] private Camera _camera;
+    [SerializeField] private GameObject _sphere1;
+    [SerializeField] private GameObject _sphere2;
+    [SerializeField] private GuiManager _gui;
 
     private const float MouseThreshold = 0.2f;
-    private GameObject _importedObj;
-    private MeshCollider _collider;
-	void Start () {
+    private const float RotateCoef = 5;
+    private const float MaxMagnitude = 0.1f;
 
+    private GameObject _importedObj;
+    private MeshFilter _meshFilter;
+
+    private bool _isRightMouseButtonPressed;
+
+    public delegate void SwitchPointsAction();
+    public SwitchPointsAction PointsSwitched;
+
+    public delegate void LengthCalculatedAction(float length);
+    public LengthCalculatedAction LengthCalculated;
+
+    private Vector3 _firstPointValue = default (Vector3);
+
+	void Start () 
+    {
         if(System.Environment.GetCommandLineArgs().Length > 1)
         {
             //string modelPath = "C:\\Explorer\\teapot.obj";
@@ -20,7 +37,11 @@ public class ModelLoader : MonoBehaviour {
             _importedObj = new GameObject("mesh", typeof(MeshRenderer), typeof(MeshFilter), typeof(MeshCollider));
             _importedObj.GetComponent<MeshFilter>().mesh = importedMesh;
             _importedObj.GetComponent<MeshRenderer>().materials[0] = _diffuse;
-            _collider = _importedObj.GetComponent<MeshCollider>();
+            
+            _importedObj.transform.parent = this.transform;
+            _importedObj.transform.localPosition = new Vector3(0,0,-1);
+            _importedObj.transform.Rotate(Vector3.up, 180);
+            _meshFilter = _importedObj.GetComponent<MeshFilter>();
         }
 	}
 	
@@ -33,31 +54,70 @@ public class ModelLoader : MonoBehaviour {
 
              if (mousex > MouseThreshold)
              {
-                 _importedObj.transform.Rotate(Vector3.up, -mousex*10, Space.World);
+                 transform.Rotate(Vector3.up, -mousex * RotateCoef);
              }
              else if (mousex < -MouseThreshold)
              {
-                 _importedObj.transform.Rotate(Vector3.up, -mousex * 10, Space.World);
+                 transform.Rotate(Vector3.up, -mousex * RotateCoef);
              }
 
              if (mousey > MouseThreshold)
              {
-                 _importedObj.transform.Rotate(Vector3.right, mousey * 10, Space.World);
+                 transform.Rotate(Vector3.right, mousey * RotateCoef);
              }
              else if (mousey < -MouseThreshold)
              {
-                 _importedObj.transform.Rotate(Vector3.right, mousey * 10, Space.World);
-             }   
+                 transform.Rotate(Vector3.right, mousey * RotateCoef);
+             } 
          }
-         if (Input.GetMouseButton(1) && _importedObj != null)
+         if (Input.GetMouseButton(1) && _importedObj != null &&!_isRightMouseButtonPressed)
          {
+             _isRightMouseButtonPressed = true;
              Ray ray = _camera.ScreenPointToRay (new Vector3(Input.mousePosition.x,Input.mousePosition.y,0));
-             RaycastHit hitInfo;
-             if (_collider.Raycast(ray, out hitInfo, 100))
+             float minDist = float.MaxValue;
+             Vector3[] vertices = _meshFilter.mesh.vertices;
+             Vector3 closestVertex = default(Vector3);
+             foreach (var vertex in vertices)
              {
-                 Debug.Log(hitInfo.point.x);
-                 Debug.Log(hitInfo.point.y);
+                 Vector3 realVertex = new Vector3(vertex.x*-1, vertex.y, vertex.z*-1) + _importedObj.transform.localPosition;
+                 float currentDist = DistanceToLine(ray, realVertex);
+                 if (currentDist < MaxMagnitude)
+                 {
+                     if (currentDist < minDist)
+                     {
+                         minDist = currentDist;
+                         closestVertex = realVertex;
+                     }   
+                 }
+             }
+             if (closestVertex != default (Vector3))
+             {
+                 if (_gui.IsFirstPointSelected())
+                 {
+                     _sphere2.gameObject.SetActive(false);
+                     _sphere1.transform.position = closestVertex;
+                     _sphere1.gameObject.SetActive(true);
+                     _firstPointValue = closestVertex;
+                     if (PointsSwitched != null)
+                         PointsSwitched();
+                 }
+                 else
+                 {
+                     _sphere2.transform.position = closestVertex;
+                     _sphere2.gameObject.SetActive(true);
+                     float length = (_firstPointValue - closestVertex).magnitude;
+                     if (LengthCalculated != null)
+                         LengthCalculated(length);
+                 }
              }
          }
+         if (!Input.GetMouseButton(1))
+             _isRightMouseButtonPressed = false;
      }
+
+     private static float DistanceToLine(Ray ray, Vector3 point)
+     {
+         return Vector3.Cross(ray.direction, point - ray.origin).magnitude;
+     }
+
 }
