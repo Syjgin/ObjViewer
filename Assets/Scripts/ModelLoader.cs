@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 public class ModelLoader : MonoBehaviour {
 
@@ -10,10 +11,10 @@ public class ModelLoader : MonoBehaviour {
 
     private const float MouseThreshold = 0.2f;
     private const float RotateCoef = 5;
-    private const float MaxMagnitude = 0.1f;
+    private const float MaxMagnitude = 0.05f;
 
-    private GameObject _importedObj;
-    private MeshFilter _meshFilter;
+    private List<GameObject> _importedObjects;
+    private List<MeshFilter> _meshFilters;
 
     private bool _isRightMouseButtonPressed;
 
@@ -27,27 +28,34 @@ public class ModelLoader : MonoBehaviour {
 
 	void Start () 
     {
-        if(System.Environment.GetCommandLineArgs().Length > 1)
+        //if(System.Environment.GetCommandLineArgs().Length > 1)
         {
-            //string modelPath = "C:\\Explorer\\teapot.obj";
-            string modelPath = System.Environment.GetCommandLineArgs()[1];
+            string modelPath = "C:\\Explorer\\teapot.obj";
+            //string modelPath = System.Environment.GetCommandLineArgs()[1];
             ObjImporter importer = new ObjImporter();
-            Mesh importedMesh = importer.ImportFile(modelPath);
-            importedMesh.RecalculateNormals();
-            _importedObj = new GameObject("mesh", typeof(MeshRenderer), typeof(MeshFilter), typeof(MeshCollider));
-            _importedObj.GetComponent<MeshFilter>().mesh = importedMesh;
-            _importedObj.GetComponent<MeshRenderer>().materials[0] = _diffuse;
-            
-            _importedObj.transform.parent = this.transform;
-            _importedObj.transform.localPosition = new Vector3(0,0,-1);
-            _importedObj.transform.Rotate(Vector3.up, 180);
-            _meshFilter = _importedObj.GetComponent<MeshFilter>();
+            List<Mesh> importedMeshes = importer.ImportFile(modelPath);
+            _importedObjects = new List<GameObject>();
+            _meshFilters = new List<MeshFilter>();
+            foreach (var importedMesh in importedMeshes)
+            {
+                importedMesh.RecalculateNormals();
+                GameObject importedObj = new GameObject("mesh", typeof(MeshRenderer), typeof(MeshFilter), typeof(MeshCollider));
+                importedObj.GetComponent<MeshFilter>().mesh = importedMesh;
+                importedObj.GetComponent<MeshRenderer>().materials[0] = _diffuse;
+
+                importedObj.transform.parent = this.transform;
+                importedObj.transform.localPosition = new Vector3(0, 0, -1);
+                importedObj.transform.Rotate(Vector3.up, 180);
+                MeshFilter meshFilter = importedObj.GetComponent<MeshFilter>();
+                _importedObjects.Add(importedObj);
+                _meshFilters.Add(meshFilter);
+            }
         }
 	}
 	
      void Update()
      {
-         if(Input.GetMouseButton(0) && _importedObj != null)
+         if(Input.GetMouseButton(0) && _importedObjects.Count > 0)
          {
              float mousex = Input.GetAxis("Mouse X");
              float mousey = Input.GetAxis("Mouse Y");
@@ -70,24 +78,37 @@ public class ModelLoader : MonoBehaviour {
                  transform.Rotate(Vector3.right, mousey * RotateCoef);
              } 
          }
-         if (Input.GetMouseButton(1) && _importedObj != null &&!_isRightMouseButtonPressed)
+         if (Input.GetMouseButton(1) && _importedObjects.Count > 0 &&!_isRightMouseButtonPressed)
          {
              _isRightMouseButtonPressed = true;
              Ray ray = _camera.ScreenPointToRay (new Vector3(Input.mousePosition.x,Input.mousePosition.y,0));
-             float minDist = float.MaxValue;
-             Vector3[] vertices = _meshFilter.mesh.vertices;
-             Vector3 closestVertex = default(Vector3);
+             List<Vector3> vertices = new List<Vector3>();
+             foreach (var meshFilter in _meshFilters)
+             {
+                 foreach (var vertex in meshFilter.mesh.vertices)
+                 {
+                     vertices.Add(vertex);
+                 }
+             }
+             List<Vector3> closestVertices = new List<Vector3>();
              foreach (var vertex in vertices)
              {
-                 Vector3 realVertex = new Vector3(vertex.x*-1, vertex.y, vertex.z*-1) + _importedObj.transform.localPosition;
+                 Vector3 realVertex = new Vector3(vertex.x*-1, vertex.y, vertex.z*-1) + new Vector3(0,0,-1);
                  float currentDist = DistanceToLine(ray, realVertex);
                  if (currentDist < MaxMagnitude)
                  {
-                     if (currentDist < minDist)
-                     {
-                         minDist = currentDist;
-                         closestVertex = realVertex;
-                     }   
+                     closestVertices.Add(realVertex);
+                 }
+             }
+             Vector3 closestVertex = default(Vector3);
+             float minDist = float.MaxValue;
+             foreach (var vertex in closestVertices)
+             {
+                 float currentDist = DistanceToOrigin(ray, vertex);
+                 if (currentDist < minDist)
+                 {
+                     minDist = currentDist;
+                     closestVertex = vertex;
                  }
              }
              if (closestVertex != default (Vector3))
@@ -120,4 +141,8 @@ public class ModelLoader : MonoBehaviour {
          return Vector3.Cross(ray.direction, point - ray.origin).magnitude;
      }
 
+    private static float DistanceToOrigin(Ray ray, Vector3 point)
+    {
+        return (point - ray.origin).magnitude;
+    }
 }
