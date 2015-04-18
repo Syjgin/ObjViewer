@@ -1,18 +1,14 @@
-﻿/* This version of ObjImporter first reads through the entire file, getting a count of how large
- * the final arrays will be, and then uses standard arrays for everything (as opposed to ArrayLists
- * or any other fancy things). 
- */
-
-using System.Security.Principal;
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
+//класс для загрузки формата .obj из текстового файла
 public class ObjImporter
 {
-    private const int MaxVertices = 10000;
+    //максимально возможное кратное 3 число вершин в Unity
+    private const int MaxVertices = 64998;
     private struct meshStruct
     {
         public Vector3[] vertices;
@@ -28,47 +24,49 @@ public class ObjImporter
         public string fileName;
     }
 
-    // Use this for initialization
+    //интерфейс класса - принимает имя файла, возвращает массив импортированных мешей
     public List<Mesh> ImportFile(string filePath)
     {
+        //выяснение размеров мешей в модели
         List<meshStruct> newMeshes = createMeshStruct(filePath);
+        //заполнение полученных на первом шаге массивов
         populateMeshStruct(ref newMeshes);
         List<Mesh> meshes = new List<Mesh>();
         int meshNum = 0;
         foreach (var meshStruct1 in newMeshes)
         {
             int length = Mathf.Min(meshStruct1.faceData.Length, MaxVertices);
+            //подготовка вершин, нормалей и текстурных координат к экспорту в формат Unity
             Vector3[] newVerts = new Vector3[length];
             Vector2[] newUVs = new Vector2[length];
             Vector3[] newNormals = new Vector3[length];
+            int[] triangles = new int[meshStruct1.faceData.Length];
             int i = 0;
-            /* The following foreach loops through the facedata and assigns the appropriate vertex, uv, or normal
-             * for the appropriate Unity mesh array.
-             */
+            
             foreach (Vector3 v in meshStruct1.faceData)
             {
                 int index = (int) v.x - 1;
                 if(meshStruct1.vertices.Length > index)
                     newVerts[i] = meshStruct1.vertices[index];
-                else
-                    newVerts[i] = new Vector3(0,0,0);
                 if (v.y >= 1)
                     newUVs[i] = meshStruct1.uv[(int)v.y - 1];
 
                 if (v.z >= 1 && meshStruct1.normals.Length > 0)
-                    newNormals[i] = meshStruct1.normals[(int)v.z - 1];      
+                    newNormals[i] = meshStruct1.normals[(int)v.z - 1];
+                triangles[i] = i;
                 i++;
             }
-
+            //заполнение объекта Unity Mesh полученными значениями
             Mesh mesh = new Mesh();
 
             mesh.vertices = newVerts;
             mesh.uv = newUVs;
             mesh.normals = newNormals;
-            mesh.triangles = meshStruct1.triangles;
+            mesh.triangles = triangles;
 
             mesh.RecalculateBounds();
-            //mesh.Optimize();  
+            mesh.RecalculateNormals();
+            mesh.Optimize();  
             meshes.Add(mesh);
             meshNum++;
         }
@@ -76,6 +74,7 @@ public class ObjImporter
         return meshes;
     }
 
+    //подсчёт числа вершин, нормалей, uv-координат и треугольников в модели
     private static List<meshStruct> createMeshStruct(string filename)
     {
         List<meshStruct> meshList = new List<meshStruct>();
@@ -116,8 +115,8 @@ public class ObjImporter
                 }
                 else
                 {
-                    currentText = currentText.Trim();                           //Trim the current line
-                    brokenString = currentText.Split(splitIdentifier, 50);      //Split the line into an array, separating the original line by blank spaces
+                    currentText = currentText.Trim();             
+                    brokenString = currentText.Split(splitIdentifier, 50);      
                     switch (brokenString[0])
                     {
                         case "v":
@@ -156,9 +155,7 @@ public class ObjImporter
                                 face.Add(0);
                             }
                             face[currentFaceIndex] = face[currentFaceIndex] + brokenString.Length - 1;
-                            triangles[currentTriangleIndex] = triangles[currentTriangleIndex] + 3 * (brokenString.Length - 2); /*brokenString.Length is 3 or greater since a face must have at least
-                                                                                     3 vertices.  For each additional vertice, there is an additional
-                                                                                     triangle in the mesh (hence this formula).*/
+                            triangles[currentTriangleIndex] = triangles[currentTriangleIndex] + 3 * (brokenString.Length - 2); 
                             break;
                     }
                     currentText = reader.ReadLine();
@@ -190,6 +187,7 @@ public class ObjImporter
         return meshList;
     }
 
+    //заполнение полученных на первом шаге массивов
     private static void populateMeshStruct(ref List<meshStruct> meshes)
     {
         StreamReader stream = File.OpenText(meshes[0].fileName);
@@ -290,12 +288,12 @@ public class ObjImporter
                             while (j < brokenString.Length && ("" + brokenString[j]).Length > 0)
                             {
                                 Vector3 temp = new Vector3();
-                                brokenBrokenString = brokenString[j].Split(splitIdentifier2, 3);    //Separate the face into individual components (vert, uv, normal)
+                                brokenBrokenString = brokenString[j].Split(splitIdentifier2, 3);    
                                 temp.x = System.Convert.ToInt32(brokenBrokenString[0]);
                                 temp.x -= meshes[currentFaceIndex].faceData.Length*currentFaceIndex;
-                                if (brokenBrokenString.Length > 1)                                  //Some .obj files skip UV and normal
+                                if (brokenBrokenString.Length > 1)                                  
                                 {
-                                    if (brokenBrokenString[1] != "")                                    //Some .obj files skip the uv and not the normal
+                                    if (brokenBrokenString[1] != "")                                
                                     {
                                         temp.y = System.Convert.ToInt32(brokenBrokenString[1]);
                                     }
@@ -317,7 +315,7 @@ public class ObjImporter
                                 currentTriangleIndex++;
                                 f = 0;
                             }
-                            while (j + 2 < brokenString.Length)     //Create triangles out of the face data.  There will generally be more than 1 triangle per face.
+                            while (j + 2 < brokenString.Length)     
                             {
                                 meshes[currentTriangleIndex].triangles[f] = intArray[0];
                                 f++;
@@ -332,7 +330,7 @@ public class ObjImporter
                     currentText = reader.ReadLine();
                     if (currentText != null)
                     {
-                        currentText = currentText.Replace("  ", " ");       //Some .obj files insert double spaces, this removes them.
+                        currentText = currentText.Replace("  ", " ");       
                     }
                 }
             }

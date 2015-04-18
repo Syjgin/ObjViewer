@@ -23,15 +23,7 @@ E:\projects\ObjViewer\ObjViewer\obj\Debug\Assembly-CSharp.dll
 E:\projects\ObjViewer\ObjViewer\obj\Debug\Assembly-CSharp.pdb
 C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp.dll
 C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp.pdb
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.dll
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Xcode.dll
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.dll
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.UI.dll
 C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\Assembly-CSharp-firstpass.pdb
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.xml
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.xml
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEngine.UI.xml
-C:\Users\harinezumi\Documents\ObjViewer\Temp\UnityVS_bin\Debug\UnityEditor.iOS.Extensions.Xcode.xml
 C:\Users\harinezumi\Documents\ObjViewer\obj\Debug\UnityVS.ObjViewer.CSharp.csprojResolveAssemblyReference.cache
 C:\Users\harinezumi\Documents\ObjViewer\obj\Debug\Assembly-CSharp.dll
 C:\Users\harinezumi\Documents\ObjViewer\obj\Debug\Assembly-CSharp.pdb

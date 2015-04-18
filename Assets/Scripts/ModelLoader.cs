@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+//класс для загрузки модели в сцену и её отображения
 public class ModelLoader : MonoBehaviour {
 
     [SerializeField] private Material _diffuse;
@@ -9,47 +10,60 @@ public class ModelLoader : MonoBehaviour {
     [SerializeField] private GameObject _sphere2;
     [SerializeField] private GuiManager _gui;
 
+    //чувствительность мыши
     private const float MouseThreshold = 0.2f;
     private const float RotateCoef = 5;
-    private const float MaxMagnitude = 0.05f;
 
+    //загруженные из файла части модели
     private List<GameObject> _importedObjects;
-    private List<MeshFilter> _meshFilters;
+    private List<MeshCollider> _meshColliders;
 
     private bool _isRightMouseButtonPressed;
 
+    //события, на которые реагирует GUI: смена вершин, завершение вычисления расстояния, завершение загрузки модели из файла
     public delegate void SwitchPointsAction();
     public SwitchPointsAction PointsSwitched;
 
     public delegate void LengthCalculatedAction(float length);
     public LengthCalculatedAction LengthCalculated;
 
+    public delegate void LoadingFinishedAction();
+    public LoadingFinishedAction LoadingFinished;
+
     private Vector3 _firstPointValue = default (Vector3);
 
 	void Start () 
     {
-        //if(System.Environment.GetCommandLineArgs().Length > 1)
+        if(System.Environment.GetCommandLineArgs().Length > 1)
         {
-            string modelPath = "C:\\Explorer\\teapot.obj";
-            //string modelPath = System.Environment.GetCommandLineArgs()[1];
+            //string modelPath = "C:\\Explorer\\teapot.obj";
+            //имя модели берётся из командной строки
+            string modelPath = System.Environment.GetCommandLineArgs()[1];
+            //загружаем модель из файла
             ObjImporter importer = new ObjImporter();
             List<Mesh> importedMeshes = importer.ImportFile(modelPath);
+            //если модель не проходит ограничение в 65000 вершин на меш, разбиваем на несколько мешей
             _importedObjects = new List<GameObject>();
-            _meshFilters = new List<MeshFilter>();
+            _meshColliders = new List<MeshCollider>();
             foreach (var importedMesh in importedMeshes)
             {
-                importedMesh.RecalculateNormals();
                 GameObject importedObj = new GameObject("mesh", typeof(MeshRenderer), typeof(MeshFilter), typeof(MeshCollider));
                 importedObj.GetComponent<MeshFilter>().mesh = importedMesh;
                 importedObj.GetComponent<MeshRenderer>().materials[0] = _diffuse;
 
+                importedObj.GetComponent<MeshCollider>().sharedMesh = importedMesh;
+
                 importedObj.transform.parent = this.transform;
                 importedObj.transform.localPosition = new Vector3(0, 0, -1);
                 importedObj.transform.Rotate(Vector3.up, 180);
-                MeshFilter meshFilter = importedObj.GetComponent<MeshFilter>();
+                MeshCollider col = importedObj.GetComponent<MeshCollider>();
                 _importedObjects.Add(importedObj);
-                _meshFilters.Add(meshFilter);
+                //сохраняем коллайдер каждого меша для обработки клика мышью
+                _meshColliders.Add(col);
             }
+            //событие окончания загрузки
+            if (LoadingFinished != null)
+                LoadingFinished();
         }
 	}
 	
@@ -57,6 +71,7 @@ public class ModelLoader : MonoBehaviour {
      {
          if(Input.GetMouseButton(0) && _importedObjects.Count > 0)
          {
+             //при зажатой левой клавише мыши вращаем модель
              float mousex = Input.GetAxis("Mouse X");
              float mousey = Input.GetAxis("Mouse Y");
 
@@ -80,39 +95,23 @@ public class ModelLoader : MonoBehaviour {
          }
          if (Input.GetMouseButton(1) && _importedObjects.Count > 0 &&!_isRightMouseButtonPressed)
          {
+             //при нажатии правой кнопки мыши пытаемся найти точку пересечения курсора с моделью
              _isRightMouseButtonPressed = true;
              Ray ray = _camera.ScreenPointToRay (new Vector3(Input.mousePosition.x,Input.mousePosition.y,0));
-             List<Vector3> vertices = new List<Vector3>();
-             foreach (var meshFilter in _meshFilters)
-             {
-                 foreach (var vertex in meshFilter.mesh.vertices)
-                 {
-                     vertices.Add(vertex);
-                 }
-             }
-             List<Vector3> closestVertices = new List<Vector3>();
-             foreach (var vertex in vertices)
-             {
-                 Vector3 realVertex = new Vector3(vertex.x*-1, vertex.y, vertex.z*-1) + new Vector3(0,0,-1);
-                 float currentDist = DistanceToLine(ray, realVertex);
-                 if (currentDist < MaxMagnitude)
-                 {
-                     closestVertices.Add(realVertex);
-                 }
-             }
              Vector3 closestVertex = default(Vector3);
-             float minDist = float.MaxValue;
-             foreach (var vertex in closestVertices)
+             foreach (var col in _meshColliders)
              {
-                 float currentDist = DistanceToOrigin(ray, vertex);
-                 if (currentDist < minDist)
+                 RaycastHit hit;
+                 if (col.Raycast(ray, out hit, 1000))
                  {
-                     minDist = currentDist;
-                     closestVertex = vertex;
+                     //точка пересечения найдена
+                     closestVertex = hit.point;
+                     break;
                  }
              }
              if (closestVertex != default (Vector3))
              {
+                 //если до этого была выбрана первая точка, переходим в режим выбора второй
                  if (_gui.IsFirstPointSelected())
                  {
                      _sphere2.gameObject.SetActive(false);
@@ -124,6 +123,7 @@ public class ModelLoader : MonoBehaviour {
                  }
                  else
                  {
+                     //если была выбрана вторая точка, считаем расстояние и отправляем событие в GUI
                      _sphere2.transform.position = closestVertex;
                      _sphere2.gameObject.SetActive(true);
                      float length = (_firstPointValue - closestVertex).magnitude;
@@ -132,17 +132,8 @@ public class ModelLoader : MonoBehaviour {
                  }
              }
          }
+         //предотвращаем многократную обработку нажатия
          if (!Input.GetMouseButton(1))
              _isRightMouseButtonPressed = false;
      }
-
-     private static float DistanceToLine(Ray ray, Vector3 point)
-     {
-         return Vector3.Cross(ray.direction, point - ray.origin).magnitude;
-     }
-
-    private static float DistanceToOrigin(Ray ray, Vector3 point)
-    {
-        return (point - ray.origin).magnitude;
-    }
 }
