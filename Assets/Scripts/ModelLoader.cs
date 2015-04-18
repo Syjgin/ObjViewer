@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 //класс для загрузки модели в сцену и её отображения
@@ -27,14 +28,23 @@ public class ModelLoader : MonoBehaviour {
     public delegate void LengthCalculatedAction(float length);
     public LengthCalculatedAction LengthCalculated;
 
-    public delegate void LoadingFinishedAction();
-    public LoadingFinishedAction LoadingFinished;
+    public delegate void LoadingPhaseAction(string message);
+    public LoadingPhaseAction SetStatus;
 
     private Vector3 _firstPointValue = default (Vector3);
 
-	void Start () 
+    private bool _isModelInitialized;
+
+	void Start ()
+	{
+	    _isModelInitialized = false;
+	    StartCoroutine(LoadModelCoroutine());
+	}
+
+    IEnumerator LoadModelCoroutine()
     {
-        if(System.Environment.GetCommandLineArgs().Length > 1)
+        yield return new WaitForSeconds(2);
+        if (System.Environment.GetCommandLineArgs().Length > 1)
         {
             //string modelPath = "C:\\Explorer\\teapot.obj";
             //имя модели берётся из командной строки
@@ -61,79 +71,88 @@ public class ModelLoader : MonoBehaviour {
                 //сохраняем коллайдер каждого меша для обработки клика мышью
                 _meshColliders.Add(col);
             }
-            //событие окончания загрузки
-            if (LoadingFinished != null)
-                LoadingFinished();
+            //по окончанию загрузки убираем статусное сообщение
+            if (SetStatus != null)
+                SetStatus("");
+            _isModelInitialized = true;
         }
-	}
-	
+        else
+        {
+            if (SetStatus != null)
+                SetStatus("не задан входной файл");
+        }
+    }
+
      void Update()
      {
-         if(Input.GetMouseButton(0) && _importedObjects.Count > 0)
+         if (_isModelInitialized)
          {
-             //при зажатой левой клавише мыши вращаем модель
-             float mousex = Input.GetAxis("Mouse X");
-             float mousey = Input.GetAxis("Mouse Y");
+             if (Input.GetMouseButton(0))
+             {
+                 //при зажатой левой клавише мыши вращаем модель
+                 float mousex = Input.GetAxis("Mouse X");
+                 float mousey = Input.GetAxis("Mouse Y");
 
-             if (mousex > MouseThreshold)
-             {
-                 transform.Rotate(Vector3.up, -mousex * RotateCoef);
-             }
-             else if (mousex < -MouseThreshold)
-             {
-                 transform.Rotate(Vector3.up, -mousex * RotateCoef);
-             }
+                 if (mousex > MouseThreshold)
+                 {
+                     transform.Rotate(Vector3.up, -mousex * RotateCoef);
+                 }
+                 else if (mousex < -MouseThreshold)
+                 {
+                     transform.Rotate(Vector3.up, -mousex * RotateCoef);
+                 }
 
-             if (mousey > MouseThreshold)
-             {
-                 transform.Rotate(Vector3.right, mousey * RotateCoef);
+                 if (mousey > MouseThreshold)
+                 {
+                     transform.Rotate(Vector3.right, mousey * RotateCoef);
+                 }
+                 else if (mousey < -MouseThreshold)
+                 {
+                     transform.Rotate(Vector3.right, mousey * RotateCoef);
+                 }
              }
-             else if (mousey < -MouseThreshold)
+             if (Input.GetMouseButton(1) && !_isRightMouseButtonPressed)
              {
-                 transform.Rotate(Vector3.right, mousey * RotateCoef);
-             } 
+                 //при нажатии правой кнопки мыши пытаемся найти точку пересечения курсора с моделью
+                 _isRightMouseButtonPressed = true;
+                 Ray ray = _camera.ScreenPointToRay(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 0));
+                 Vector3 closestVertex = default(Vector3);
+                 foreach (var col in _meshColliders)
+                 {
+                     RaycastHit hit;
+                     if (col.Raycast(ray, out hit, 1000))
+                     {
+                         //точка пересечения найдена
+                         closestVertex = hit.point;
+                         break;
+                     }
+                 }
+                 if (closestVertex != default(Vector3))
+                 {
+                     //если до этого была выбрана первая точка, переходим в режим выбора второй
+                     if (_gui.IsFirstPointSelected())
+                     {
+                         _sphere2.gameObject.SetActive(false);
+                         _sphere1.transform.position = closestVertex;
+                         _sphere1.gameObject.SetActive(true);
+                         _firstPointValue = closestVertex;
+                         if (PointsSwitched != null)
+                             PointsSwitched();
+                     }
+                     else
+                     {
+                         //если была выбрана вторая точка, считаем расстояние и отправляем событие в GUI
+                         _sphere2.transform.position = closestVertex;
+                         _sphere2.gameObject.SetActive(true);
+                         float length = (_firstPointValue - closestVertex).magnitude;
+                         if (LengthCalculated != null)
+                             LengthCalculated(length);
+                     }
+                 }
+             }
+             //предотвращаем многократную обработку нажатия
+             if (!Input.GetMouseButton(1))
+                 _isRightMouseButtonPressed = false;
          }
-         if (Input.GetMouseButton(1) && _importedObjects.Count > 0 &&!_isRightMouseButtonPressed)
-         {
-             //при нажатии правой кнопки мыши пытаемся найти точку пересечения курсора с моделью
-             _isRightMouseButtonPressed = true;
-             Ray ray = _camera.ScreenPointToRay (new Vector3(Input.mousePosition.x,Input.mousePosition.y,0));
-             Vector3 closestVertex = default(Vector3);
-             foreach (var col in _meshColliders)
-             {
-                 RaycastHit hit;
-                 if (col.Raycast(ray, out hit, 1000))
-                 {
-                     //точка пересечения найдена
-                     closestVertex = hit.point;
-                     break;
-                 }
-             }
-             if (closestVertex != default (Vector3))
-             {
-                 //если до этого была выбрана первая точка, переходим в режим выбора второй
-                 if (_gui.IsFirstPointSelected())
-                 {
-                     _sphere2.gameObject.SetActive(false);
-                     _sphere1.transform.position = closestVertex;
-                     _sphere1.gameObject.SetActive(true);
-                     _firstPointValue = closestVertex;
-                     if (PointsSwitched != null)
-                         PointsSwitched();
-                 }
-                 else
-                 {
-                     //если была выбрана вторая точка, считаем расстояние и отправляем событие в GUI
-                     _sphere2.transform.position = closestVertex;
-                     _sphere2.gameObject.SetActive(true);
-                     float length = (_firstPointValue - closestVertex).magnitude;
-                     if (LengthCalculated != null)
-                         LengthCalculated(length);
-                 }
-             }
-         }
-         //предотвращаем многократную обработку нажатия
-         if (!Input.GetMouseButton(1))
-             _isRightMouseButtonPressed = false;
      }
 }

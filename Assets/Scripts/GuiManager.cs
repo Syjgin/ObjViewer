@@ -26,13 +26,13 @@ public class GuiManager : MonoBehaviour
         //обработка событий загрузчика модели
         _loader.PointsSwitched += onPointsSwitched;
         _loader.LengthCalculated += onLengthCalculated;
-        _loader.LoadingFinished += onLoadingFinished;
+        _loader.SetStatus += onStatusChanged;
 	}
 
-    private void onLoadingFinished()
+    private void onStatusChanged(string message)
     {
-        //когда модель загрузилась, убираем сообщение о загрузке
-        _loadingText.gameObject.SetActive(false);
+        //отображаем сообщение загрузки
+        _loadingText.text = message;
     }
 
     private void onLengthCalculated(float length)
@@ -56,7 +56,7 @@ public class GuiManager : MonoBehaviour
 
         _loader.PointsSwitched -= onPointsSwitched;
         _loader.LengthCalculated -= onLengthCalculated;
-        _loader.LoadingFinished -= onLoadingFinished;
+        _loader.SetStatus -= onStatusChanged;
     }
 
     private void firstPointValueChanged(bool val)
